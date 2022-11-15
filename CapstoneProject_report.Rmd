@@ -1,0 +1,218 @@
+---
+title: "Homicide rate, Suicide rate and GDP over 50 years"
+subtitle: "Introduction to R for Data Science and Computational Social Sciences"
+author: "Ursulina Kölbener, Cand. Lucerne Master in Computational Social Sciences"
+date: "2022-11-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+```{r packages, echo = FALSE}
+# install and load packages
+# install.packages("tidyverse")
+library(tidyverse)
+```
+
+
+## Dataset
+
+The dataset contains homicide rate, suicide rate and gross domestic product (GDP) from 1970 to 2020 by country. The data source is [THE WORLD BANK](https://data.worldbank.org/).
+
+```{r import data}
+# import dataset
+shg_original <- rio::import("../data/suicide_homicide_gdp.csv")
+```
+
+There are 13'566 observations with 10 variables. The country name is represeneted in three different ways. Once completely written out (`country`), once abbreviated according to the iso standard with 3 characters (`iso3c`) and once abbreviated according to the iso standard with 2 characters (`iso2c`).
+
+```{r observations and variables}
+# number of observations
+nrow(shg_original)
+
+# numer of variables
+ncol(shg_original)
+
+```
+
+The dataset shows observations from 1970 to 2020 (`year`) as a integer data type. Further there are four numerical values: `Intentional homicides (per 100,000 people)`, `Suicide mortality rate (per 100,000 population)`, Gross Domestic Product `GDP (current US$)` and `GDP per capita, PPP (current international $)`. Intentional homicides and suicide mortality rate are discrete values. Gross domestic product (GDP) is a continuous variable, a monetary measure of the market value of all the final goods and services produced and sold (not resold) in a specific time period by countries. Gross domestic product (GDP) per capita is a financial metric that breaks down a country's economic output per person and is calculated by dividing the GDP of a nation by its population. The values of the GDP per capita reach from 285.4 to 153563.9.
+
+Finally, the region (`adminregion`) and income level (`incomeLevel`) are specified as characters. Region and income level are categorical variables. Income level is somewhat ordinal with the following values: Aggregates, High income, Low income, Lower middle income	and Upper middle income. A few variables are not classified, others are aggregates. I will remove them later.
+
+```{r data type and summary}
+# check data type of every variable
+str(shg_original)
+
+# summary statistics
+summary(shg_original)
+
+```
+
+### Research Questions
+
+Do intentional homicides correlate with gross domestic product (GDP) in genereal? What are the differences in regions over the years?
+
+Does a high homicide rate favor a high suicide mortality rate?
+
+
+### Data Transformation
+
+Transforming the data for easier handling. Also, the dataset contains lot's of variables with NA. Removing those NA's leaves 2352 observations.
+```{r}
+# creating a new dataset from the original data
+shg <- shg_original
+
+# renaming the variables to easier names
+shg <- rename(shg, IntHomicides = `Intentional homicides (per 100,000 people)`,
+              SuicideMort = `Suicide mortality rate (per 100,000 population)`,
+              GDP = `GDP (current US$)`,
+              GDPcap = `GDP per capita, PPP (current international $)`,
+              region = `adminregion`)
+
+# removing all observations with NA's
+shg <- shg %>% 
+  filter(incomeLevel != "Aggregates" & incomeLevel != "Not classified" ) %>% 
+  filter(!is.na(IntHomicides)) %>% 
+  filter(!is.na(SuicideMort))
+
+```
+
+
+## Summary Statistics
+
+For the *income level*: There are 897 observations with high income, 757 with upper middle income, 560 with lower middle income and 132 observations with low income.
+
+```{r}
+# calculate frequency of income level
+table(shg$incomeLevel)
+```
+
+GDP per capita: The minimum value is 532.5 and the maximum 141634.7. The mean has a value of 19491.1, the medain is lower at 12506.5.
+```{r}
+# summary of GDP per capita
+summary(shg$GDPcap)
+```
+
+
+```{r}
+# average intention homicides, suicidate mortality and GDP per capita
+# grouped by income level
+shg %>% 
+  group_by(incomeLevel) %>% 
+  summarise(avg_IntHomicides = mean(IntHomicides, na.rm = TRUE),
+            avg_SuicideMort = mean(SuicideMort, na.rm = TRUE),
+            avg_GDPcap = mean(GDPcap, na.rm = TRUE))
+```
+
+## Data Transformation
+```{r}
+# create a new subset
+shg_trnsf <- shg %>% 
+  select(-iso3c) %>% # remove column iso3c
+  filter(iso2c != "") # remove rows (total per region)
+
+
+  
+```
+
+
+```{r}
+# import a second dataset
+region <- rio::import("../data/region.csv")
+
+# combining another dataset
+
+```
+
+
+## Data Vizualization
+### Global Trend
+
+```{r}
+# calculate the average of three continuous variables
+shg_trend <- shg %>% 
+  group_by(year) %>% 
+  summarise(avg_IntHomicides = mean(IntHomicides, na.rm = TRUE),
+            avg_SuicideMort = mean(SuicideMort, na.rm = TRUE),
+            avg_GDPcap = mean(GDPcap, na.rm = TRUE))
+
+# show summarized data
+shg_trend # lots of NaN in there, because there is missing data for every country in a year
+
+# remove rows with missing data
+shg_trend_woNaN <- na.omit(shg_trend) # only 19 years of complete data left
+
+```
+
+```{r}
+# plot Global Trend in Global Trend in GDP per Capita" 
+ggplot(data = shg_trend[!is.na(shg_trend$avg_GDPcap),]) +
+  geom_line(mapping = aes(x = year, y = avg_GDPcap)) +
+  theme_light() +
+  labs(x = "year", y = "GDP per capita (current international $)", 
+       title = "Global Trend in GDP per Capita",
+       subtitle = "",
+       caption = "Data from the world bank.")
+```
+
+```{r}
+# plot Global Trend in Intentional Homicides 
+ggplot(data = shg_trend[!is.na(shg_trend$avg_IntHomicides),]) +
+  geom_line(mapping = aes(x = year, y = avg_IntHomicides)) +
+  theme_light() +
+  labs(x = "year", y = "Intentional homicides (per 100,000 people)", 
+       title = "Global Trend in Intentional Homicides",
+       subtitle = "",
+       caption = "Data from the world bank.")
+  
+```
+
+```{r}
+# plot Global Trend in Global Trend in Suicide Mortality Rate 
+ggplot(data = shg_trend[!is.na(shg_trend$avg_SuicideMort),]) +
+  geom_line(mapping = aes(x = year, y = avg_SuicideMort)) +
+  theme_light() +
+  labs(x = "year", y = "Suicide mortality rate (per 100,000 population)", 
+       title = "Global Trend in Suicide Mortality Rate",
+       subtitle = "",
+       caption = "Data from the world bank.")
+  
+```
+
+```{r}
+# plot Global Trend 
+ggplot(data = shg_trend_woNaN, mapping = aes(x = year)) +
+  geom_line(mapping = aes(y = avg_IntHomicides), colour = "#33638DFF", size = 1.2) +
+  geom_line(mapping = aes(y = avg_SuicideMort), colour = "#29AF7FFF", size = 1.2) +
+  theme_light() +
+  labs(x = "year", y = "cases per 100,000 population", 
+       title = "Global Trend in Suicide Mortality Rate",
+       subtitle = "",
+       caption = "Data from the world bank.")
+  
+```
+
+```{r, echo = FALSE}
+# remove NA's
+shg_woNA <- na.omit(shg) %>% 
+  filter(region != "")
+
+ggplot(data = shg_woNA) +
+  geom_point(mapping = aes(x = log(GDPcap), y = IntHomicides))+
+  geom_smooth(mapping = aes(x = log(GDPcap), y = IntHomicides), method = "lm")+
+  facet_wrap (~region, scales = "free") +
+  theme_light()
+
+```
+
+```{r}
+ggplot(data = shg_woNA) +
+  geom_point(mapping = aes(x = log(GDPcap), y = SuicideMort, colour = region))+
+  theme_light()
+
+```
+## Statistical Modelling
+
