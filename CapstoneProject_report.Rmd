@@ -24,7 +24,7 @@ The dataset contains homicide rate, suicide rate and gross domestic product (GDP
 
 ```{r import data}
 # import dataset
-shg_original <- rio::import("../data/suicide_homicide_gdp.csv")
+shg_original <- rio::import("data/suicide_homicide_gdp.csv")
 ```
 
 There are 13'566 observations with 10 variables. The country name is represeneted in three different ways. Once completely written out (`country`), once abbreviated according to the iso standard with 3 characters (`iso3c`) and once abbreviated according to the iso standard with 2 characters (`iso2c`).
@@ -114,16 +114,20 @@ shg_trnsf <- shg %>%
   select(-iso3c) %>% # remove column iso3c
   filter(iso2c != "") # remove rows (total per region)
 
-
-  
 ```
 
 
+As the regions in the dataset are incomplete and do not match the ISO standard, I imported a proper list (`region`) with countries and their regions. I merged the two tables together. I used `merge`as I could not figure it out with `inner_join`.
 ```{r}
 # import a second dataset
-region <- rio::import("../data/region.csv")
+region <- rio::import("data/region.csv")
+
+# rename columns for easier merging
+region <- rename(region, iso2c = `alpha-2`,
+                 regionISO = `region`)
 
 # combining another dataset
+shg_exp <- merge(x = shg_trnsf, y = region, by = "iso2c")
 
 ```
 
@@ -215,4 +219,13 @@ ggplot(data = shg_woNA) +
 
 ```
 ## Statistical Modelling
+```{r}
+# study Suicide Mortality Rate
+fit1 <- lm(formula = SuicideMort ~ IntHomicides + GDPcap, 
+           data = shg_exp)
+
+# show results
+fit1
+```
+
 
