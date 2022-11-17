@@ -135,40 +135,38 @@ shg_exp <- merge(x = shg_trnsf, y = region, by = "iso2c")
 ## Data Vizualization
 ### Global Trend
 
-```{r}
-# calculate the average of three continuous variables
-shg_trend <- shg %>% 
-  group_by(year) %>% 
-  summarise(avg_IntHomicides = mean(IntHomicides, na.rm = TRUE),
-            avg_SuicideMort = mean(SuicideMort, na.rm = TRUE),
+```{r trend by region and year}
+# calculate the sum of two continuous variables and the average of one
+shg_trend <- shg_exp %>% 
+  group_by(regionISO, year) %>% 
+  summarise(sum_IntHomicides = sum(IntHomicides, na.rm = TRUE),
+            sum_SuicideMort = sum(SuicideMort, na.rm = TRUE),
             avg_GDPcap = mean(GDPcap, na.rm = TRUE))
 
 # show summarized data
-shg_trend # lots of NaN in there, because there is missing data for every country in a year
-
-# remove rows with missing data
-shg_trend_woNaN <- na.omit(shg_trend) # only 19 years of complete data left
+shg_trend
 
 ```
 
 ```{r}
 # plot Global Trend in Global Trend in GDP per Capita" 
-ggplot(data = shg_trend[!is.na(shg_trend$avg_GDPcap),]) +
-  geom_line(mapping = aes(x = year, y = avg_GDPcap)) +
+ggplot(data = shg_trend) +
+  geom_line(mapping = aes(x = year, y = avg_GDPcap, colour = regionISO, group = regionISO)) +
   theme_light() +
   labs(x = "year", y = "GDP per capita (current international $)", 
-       title = "Global Trend in GDP per Capita",
+       title = "Global Trend in GDP per Capita by region",
        subtitle = "",
        caption = "Data from the world bank.")
 ```
 
 ```{r}
 # plot Global Trend in Intentional Homicides 
-ggplot(data = shg_trend[!is.na(shg_trend$avg_IntHomicides),]) +
-  geom_line(mapping = aes(x = year, y = avg_IntHomicides)) +
+ggplot(data = shg_trend) +
+  geom_line(mapping = aes(x = year, y = sum_IntHomicides, 
+                          colour = regionISO, group = regionISO)) +
   theme_light() +
   labs(x = "year", y = "Intentional homicides (per 100,000 people)", 
-       title = "Global Trend in Intentional Homicides",
+       title = "Global Trend in Intentional Homicides by region",
        subtitle = "",
        caption = "Data from the world bank.")
   
@@ -176,11 +174,11 @@ ggplot(data = shg_trend[!is.na(shg_trend$avg_IntHomicides),]) +
 
 ```{r}
 # plot Global Trend in Global Trend in Suicide Mortality Rate 
-ggplot(data = shg_trend[!is.na(shg_trend$avg_SuicideMort),]) +
-  geom_line(mapping = aes(x = year, y = avg_SuicideMort)) +
+ggplot(data = shg_trend) +
+  geom_line(mapping = aes(x = year, y = sum_SuicideMort, colour = regionISO, group = regionISO)) +
   theme_light() +
   labs(x = "year", y = "Suicide mortality rate (per 100,000 population)", 
-       title = "Global Trend in Suicide Mortality Rate",
+       title = "Global Trend in Suicide Mortality Rate by region",
        subtitle = "",
        caption = "Data from the world bank.")
   
@@ -188,10 +186,11 @@ ggplot(data = shg_trend[!is.na(shg_trend$avg_SuicideMort),]) +
 
 ```{r}
 # plot Global Trend 
-ggplot(data = shg_trend_woNaN, mapping = aes(x = year)) +
-  geom_line(mapping = aes(y = avg_IntHomicides), colour = "#33638DFF", size = 1.2) +
-  geom_line(mapping = aes(y = avg_SuicideMort), colour = "#29AF7FFF", size = 1.2) +
+ggplot(data = shg_trend, mapping = aes(x = year)) +
+  geom_line(mapping = aes(y = sum_IntHomicides), colour = "#33638DFF") +
+  geom_line(mapping = aes(y = sum_SuicideMort), colour = "#29AF7FFF") +
   theme_light() +
+  facet_wrap(~ regionISO)
   labs(x = "year", y = "cases per 100,000 population", 
        title = "Global Trend in Suicide Mortality Rate",
        subtitle = "",
@@ -200,24 +199,15 @@ ggplot(data = shg_trend_woNaN, mapping = aes(x = year)) +
 ```
 
 ```{r, echo = FALSE}
-# remove NA's
-shg_woNA <- na.omit(shg) %>% 
-  filter(region != "")
-
-ggplot(data = shg_woNA) +
+# ....
+ggplot(data = shg_exp) +
   geom_point(mapping = aes(x = log(GDPcap), y = IntHomicides))+
   geom_smooth(mapping = aes(x = log(GDPcap), y = IntHomicides), method = "lm")+
-  facet_wrap (~region, scales = "free") +
+  facet_wrap (~ regionISO, scales = "free") +
   theme_light()
 
 ```
 
-```{r}
-ggplot(data = shg_woNA) +
-  geom_point(mapping = aes(x = log(GDPcap), y = SuicideMort, colour = region))+
-  theme_light()
-
-```
 ## Statistical Modelling
 ```{r}
 # study Suicide Mortality Rate
@@ -226,6 +216,9 @@ fit1 <- lm(formula = SuicideMort ~ IntHomicides + GDPcap,
 
 # show results
 fit1
+
+# view diagnostic plot
+plot(fit1)
 ```
 
 
