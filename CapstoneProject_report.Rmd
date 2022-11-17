@@ -2,8 +2,10 @@
 title: "Homicide rate, Suicide rate and GDP over 50 years"
 subtitle: "Introduction to R for Data Science and Computational Social Sciences"
 author: "Ursulina Kölbener, Cand. Lucerne Master in Computational Social Sciences"
-date: "2022-11-06"
-output: html_document
+date: "2022-11-18"
+output: 
+  rmarkdown::html_document: 
+    theme: flatly
 ---
 
 ```{r setup, include=FALSE}
