@@ -8,14 +8,14 @@ output:
     theme: united
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
 
 ## Setup
-```{r packages, echo = FALSE}
+```{r packages, results = 'hide'}
 # install.packages("tidyverse")
 library(tidyverse)
 
@@ -25,18 +25,20 @@ library(stargazer)
 # install.packages("viridis")
 library(viridis)
 ```
-
-
-
+  
+  
+  
 ## 1. Dataset
 
-The dataset contains homicide rate, suicide rate and gross domestic product (GDP) from 1970 to 2020 by country. The data source is [THE WORLD BANK](https://data.worldbank.org/).
+The dataset contains intentional homicide rates, suicide rate and gross domestic product (GDP) from 1970 to 2020 by country. The data source is [the world bank](https://data.worldbank.org/). I found the dataset on kaggle.
 
 ```{r import data}
 # import dataset
 shg_original <- rio::import("data/suicide_homicide_gdp.csv")
 
 ```
+
+### Describing the Dataset
 
 There are 13'566 observations with 10 variables. The country name is represeneted in three different ways. Once completely written out («country»), once abbreviated according to the iso standard with 3 characters («iso3c») and once abbreviated according to the iso standard with 2 characters («iso2c»).
 
@@ -48,6 +50,8 @@ nrow(shg_original)
 ncol(shg_original)
 
 ```
+
+### Describing Variables, Type and Measurement Level
 
 The dataset shows observations from 1970 to 2020 («year») as a integer data type. Further there are four numerical values: «Intentional homicides (per 100,000 people)», «Suicide mortality rate (per 100,000 population)», Gross Domestic Product «GDP (current USD)» and «GDP per capita, PPP (current international $)». Intentional homicides and suicide mortality rate are discrete values. Gross domestic product (GDP) is a continuous variable, a monetary measure of the market value of all the final goods and services produced and sold (not resold) in a specific time period by countries. Gross domestic product (GDP) per capita is a financial metric that breaks down a country's economic output per person and is calculated by dividing the GDP of a nation by its population. The values of the GDP per capita reach from 285.4 to 153563.9.
 
@@ -62,13 +66,15 @@ summary(shg_original)
 
 ```
 
-#### Research Questions
+### Research Questions
 
 Do intentional homicides correlate with gross domestic product (GDP) in genereal? What are the differences in regions over the years?
 
 Does a high homicide rate favor a high suicide mortality rate?
 
 ## 2. Summary Statistics
+
+### Removing Incomplete Observations
 
 Transforming the data for easier handling. Also, the dataset contains lot's of variables with NA. Removing those NA's leaves 2352 observations.
 
@@ -91,27 +97,30 @@ shg <- shg %>%
 
 ```
 
+### Frequency Table
 
-For the *income level*: There are 897 observations with high income, 757 with upper middle income, 560 with lower middle income and 132 observations with low income.
+For the **income level**: There are 897 observations with high income, 757 with upper middle income, 560 with lower middle income and 132 observations with low income.
 
-```{rfrequency table}
+```{r frequency table}
 # calculate frequency of income level
 table(shg$incomeLevel)
 
 ```
 
-GDP per capita: The minimum value is 532.5 and the maximum 141634.7. The mean has a value of 19491.1, the medain is lower at 12506.5.
+### Summary
+
+**GDP per capita**: The minimum value is 532.5 and the maximum 141634.7. The mean has a value of 19491.1, the medain is lower at 12506.5.
 
 ```{r summary}
 # summary of GDP per capita
 summary(shg$GDPcap)
 ```
 
-
-
 ## 3. Data Transformation
 
-The column «iso3c» is not necessary. Further I discovered a few total rows in between the rest of the data.
+### Removing More Incomplete Observations
+
+The column «iso3c» is not necessary. Further I discovered a few *total* rows in between the rest of the data, which should be removed.
 
 ```{r}
 # create a new subset
@@ -121,10 +130,11 @@ shg_trnsf <- shg %>%
 
 ```
 
+### Merge With Another Dataset
 
-As the regions in the dataset are incomplete and do not match the ISO standard, I imported a proper list («region») with countries and their regions. I merged the two tables together. I used `merge`as I could not figure it out with `inner_join`.
+As the regions in the dataset are incomplete and do not match the ISO standard, I imported a proper list («region») with countries and their regions, then merging the two tables together. I used `merge`as I could not figure out how it works with `inner_join`.
 
-```{r}
+```{r merging dataset}
 # import a second dataset
 region <- rio::import("data/region.csv")
 
@@ -132,13 +142,16 @@ region <- rio::import("data/region.csv")
 region <- rename(region, iso2c = `alpha-2`,
                  regionISO = `region`)
 
-# combining another dataset
+# combining with another dataset
 shg_exp <- merge(x = shg_trnsf, y = region, by = "iso2c")
 
 ```
 
 
 ## 4. Data Vizualization
+
+### Subset to Vizualize Global Trends
+
 Firstly, I'd like to show the general global trend from GDP per capita, Intentional Homicides and Suicide Mortality by region.
 
 ```{r trend by region and year}
@@ -154,8 +167,10 @@ shg_trend
 
 ```
 
-```{r}
-# plot Global Trend in Global Trend in GDP per Capita" 
+### Line Plots Showing Global Trends
+
+```{r global trend 1, echo = FALSE}
+# plot Global Trend in Global Trend in GDP per Capita 
 ggplot(data = shg_trend) +
   geom_line(mapping = aes(x = year, y = avg_GDPcap, 
                           colour = regionISO, 
@@ -171,7 +186,7 @@ ggplot(data = shg_trend) +
   
 ```
 
-```{r}
+```{r global trend 2, echo = FALSE}
 # plot Global Trend in Intentional Homicides 
 ggplot(data = shg_trend) +
   geom_line(mapping = aes(x = year, y = sum_IntHomicides, 
@@ -187,7 +202,7 @@ ggplot(data = shg_trend) +
   
 ```
 
-```{r}
+```{r global trend 3, echo = FALSE}
 # plot Global Trend in Global Trend in Suicide Mortality Rate 
 ggplot(data = shg_trend) +
   geom_line(mapping = aes(x = year, y = sum_SuicideMort, 
@@ -205,7 +220,9 @@ ggplot(data = shg_trend) +
   
 ```
 
-```{r}
+### Global Trend Comparing Suicide Mortality Rate and Intentional Homicides
+
+```{r global trend 4, echo = FALSE}
 # plot Global Trend 
 ggplot(data = shg_trend, mapping = aes(x = year)) +
   geom_line(mapping = aes(y = sum_IntHomicides), colour = "#33638DFF", size = 1.2) +
@@ -214,21 +231,31 @@ ggplot(data = shg_trend, mapping = aes(x = year)) +
   scale_color_viridis(discrete = TRUE) +
   facet_wrap(~ regionISO) +
   labs(x = "year", y = "cases per 100,000 population", 
-       title = "Global Trend in Suicide Mortality Rate and Intended Homicides",
+       title = "Global Trend in Suicide Mortality Rate and Intentional Homicides",
        subtitle = "",
        caption = "Data from the world bank.")
   
 ```
 
+### Relationship Between GDP per Capita and Intentional Homicides
+
 ```{r, echo = FALSE}
 # ....
 ggplot(data = shg_exp) +
-  geom_point(mapping = aes(x = log(GDPcap), y = IntHomicides),)+
+  geom_point(mapping = aes(x = log(GDPcap), y = IntHomicides))+
   geom_smooth(mapping = aes(x = log(GDPcap), y = IntHomicides), method = "lm")+
   facet_wrap (~ regionISO, scales = "free") +
-  theme_light()
+  theme_light() +
+  labs(x = "GDP per capita", y = "Intentional Homicides", 
+       title = "GDP per Capita and Intentional Homicides",
+       subtitle = "",
+       caption = "Data from the world bank.")
 
 ```
+
+### Suicide Mortality Rate by Sub-Regions
+
+This makes more sense to only show one year and compare the sub-regions. So creating a subset, group, summarise and arrange descending.
 
 ```{r}
 # create a subset
@@ -238,6 +265,10 @@ shg_2018 <- shg_exp %>%
   summarise(sumSuicideMort = sum(SuicideMort)) %>% # calculate sum
   arrange(desc(sumSuicideMort)) # order descending
 
+```
+Then creating a plot an turning the text on the x-axis.
+
+```{r, echo = FALSE}
 # create plot
 ggplot(shg_2018) +
   geom_col(mapping = aes(x = reorder(`sub-region`, desc(sumSuicideMort)), 
@@ -245,14 +276,17 @@ ggplot(shg_2018) +
   theme_light() +
   scale_fill_viridis(discrete = TRUE) +
   labs(x = "" , 
-       y = "Suicide mortality rate", 
+       y = "Suicide Mortality Rate", 
        fill = "Region",
-       title = "Suicide Mortality Rate by sub-regions",
+       title = "Suicide Mortality Rate by Sub-regions",
        subtitle = "",
        caption = "Data from the world bank.") +
-  theme(axis.text.x = element_text(angle = 70, hjust = 1))
-
+  theme(axis.text.x = element_text(angle = 67, hjust = 1))
 ```
+
+### Countries With the Highest Mortality Rate
+
+Creating a new subset and only keeping the top 20 countries.
 
 ```{r}
 # create a subset
@@ -261,66 +295,79 @@ shg_2018_top20 <- shg_exp %>%
   arrange(desc(SuicideMort)) %>% # order descending
   top_n(20, SuicideMort) # keep only top 20
 
+```
+
+Plotting the data and reorder the x-axis. The order would be alphabetical, if the arguments are not changed.
+
+```{r, echo = FALSE}
 # create plot
 ggplot(shg_2018_top20) +
   geom_col(mapping = aes(x = reorder(country, desc(SuicideMort)), 
                          y = SuicideMort, fill = regionISO)) + 
   theme_light() +
   scale_fill_viridis(discrete = TRUE) +
-  labs(x = "" , y = "Suicide mortality rate", 
+  labs(x = "" , 
+       y = "Suicide mortality rate", 
        title = "Top 20 Countries by Suicide Mortality Rate",
        fill = "Region",
        subtitle = "",
        caption = "Data from the world bank.") +
-  theme(axis.text.x = element_text(angle = 70, hjust = 1))
-
+  theme(axis.text.x = element_text(angle = 67, hjust = 1))
 ```
 
-#### Boxplot
+### Boxplot Income Level
 I am using income level as the horizontal variable for a boxplot. This results in the creation of a separate boxplot for each level of income. All the observation with a category "high income" are used in the leftmost boxplot. Similarly the observations for levels "low income", "lower middle income" and "upper middle income" are used in separate boxplots.
 
-```{r}
+```{r boxplot, echo = FALSE}
 ggplot(shg_exp) +
   geom_boxplot(mapping = aes(x = incomeLevel, y = IntHomicides)) +
   ylim(0, 60) +
   theme_light() +
-  labs(x = "Income Level" , y = "Intended Homicides", 
-       title = "Top 20 Countries by Suicide Mortality Rate",
+  labs(x = "Income Level" , y = "Intentional Homicides", 
+       title = "Comparing Income Level",
        subtitle = "",
        caption = "Data from the world bank.")
 ```
 
 ## 5. Statistical Modelling
-```{r}
 
+Train three models with different variables.
 
-# study Suicide Mortality Rate
-fit1 <- lm(formula = SuicideMort ~ IntHomicides * GDPcap, 
+```{r statistical modelling}
+# train model 1
+fit1 <- lm(formula = SuicideMort ~ IntHomicides + GDPcap, 
            data = shg_exp)
+# show results
+summary(fit1)
 
+# view diagnostic plot
+plot(fit1)
+
+# train model 2
 fit2 <- lm(formula = SuicideMort ~ incomeLevel,
            data = shg_exp)
 
+# show results
+summary(fit2)
+
+# view diagnostic plot
+plot(fit2)
+
+# train model 3
 fit3 <- lm(formula = SuicideMort ~ regionISO + GDPcap,
            data = shg_exp)
 
 # show results
-summary(fit1)
-summary(fit2)
 summary(fit3)
 
 # view diagnostic plot
-plot(fit1)
-plot(fit2)
+plot(fit3)
 
-# regression table
-stargazer(fit1, fit2, fit3,
-          type = "html",
-          style = "apsr",
-          out = "regressionTable.html")
 ```
 
-The p-value should be smaller than 0.5. This is the case for all the three regression, whereby the value of the first model is quite high.
+### Function for Regression Table in R Markdown
+
+Creating a function to compile the regression table.
 
 ```{r starviewer_function}
 
@@ -352,6 +399,13 @@ starviewer <- function(...) {
 
 ```
 
+### Regression Table
+
+The p-value should be smaller than 0.05. This is the case for model 2 and model 3. Not for model 1.
+
+R-Squared (R² or the coefficient of determination) is a statistical measure in a regression model that determines the proportion of variance in the dependent variable that can be explained by the independent variable. The R-Squared values are pretty low, they can explain the Suicide Mortality only very little (between 2 and 15 percent). The Adjusted R-squared is always smaller than the R-squared as it is aligned with the number of variables.
+
+A closer look at model 3 ("fit3"): The region has a significant effect on the suicide mortality rate, but not allways in the same directions and not for Ozeania.
 
 ```{r create_table, results = 'asis'}
 starviewer(fit1, fit2, fit3)
